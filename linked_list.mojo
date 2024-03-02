@@ -11,7 +11,7 @@ struct ListNode:
     fn __copyinit__(existing) -> Self:
         return Self{data: existing.data, link: existing.link}
 
-struct LinkedListIterator:
+struct LinkedListIterator(Sized):
     var current: Pointer[ListNode]
 
     fn __init__(inout self, list: UnorderedLinkedList):
@@ -20,21 +20,21 @@ struct LinkedListIterator:
     fn __copyinit__(inout self, existing: Self):
         self.current = existing.current
 
-    fn __iter__(inout self) -> LinkedListIterator:
-        return self
-        
-    fn __len__(inout self) -> Int:
+    fn __len__(borrowed self) -> Int:
         if self.current:
           return 1
         else:
           return 0
 
+    fn __iter__(borrowed self) -> LinkedListIterator:
+        return self
+        
     fn __next__(inout self) -> Int:
         var current = self.current
         self.current = self.current[0].link
         return current[0].data
 
-struct UnorderedLinkedList:
+struct UnorderedLinkedList(CollectionElement, Sized, Stringable): 
     var size: Int
     var first: Pointer[ListNode]
     var last: Pointer[ListNode]
@@ -45,10 +45,10 @@ struct UnorderedLinkedList:
         self.last = Pointer[ListNode].get_null()
 
     fn __init__(inout self, *elements: Int):
-        self.size = len(elements)
+        self.size = 0
         self.first = Pointer[ListNode].get_null()
         self.last = Pointer[ListNode].get_null()
-        for i in range(self.size):
+        for i in range(len(elements)):
             self.insert_last(elements[i])
 
     fn __copyinit__(inout self, existing: Self):
@@ -56,6 +56,11 @@ struct UnorderedLinkedList:
         var iterator = LinkedListIterator(existing)
         for item in iterator:
             self.insert_last(item)
+
+    fn __moveinit__(inout self, owned existing: Self):
+        self.size = existing.size
+        self.first = existing.first
+        self.last = existing.last
 
     fn __del__(owned self):
         var current = self.first
@@ -65,10 +70,24 @@ struct UnorderedLinkedList:
           current.free()
           current = next
 
+    fn __len__(borrowed self) -> Int:
+         return self.size
+
+    fn __str__(borrowed self) -> String:
+      var current = self.first
+      var string = String()
+      if current:
+          string += "[" + String(current[0].data) 
+          while current[0].link:
+              current = current[0].link
+              string +=  ", " + String(current[0].data) 
+          string += "]"
+      return string
+
     fn __iter__(inout self) -> LinkedListIterator:
         return LinkedListIterator(self)
 
-    fn __getitem__(inout self, index: Int) raises -> Int:
+    fn __getitem__(borrowed self, index: Int) raises -> Int:
         var i = index
         if i < self.size:
             var ptr = self.first
@@ -79,20 +98,17 @@ struct UnorderedLinkedList:
         else:
             raise Error("Error indexing list: out of bounds")
 
-    fn front(inout self) raises -> Int:
+    fn front(borrowed self) raises -> Int:
       if self.first:
           return self.first[0].data
       else:
           raise Error("Error dereferencing first node: null pointer")
 
-    fn back(inout self) raises -> Int:
+    fn back(borrowed self) raises -> Int:
       if self.last:
           return self.last[0].data
       else:
           raise Error("Error dereferencing last node: null pointer")
-
-    fn length(inout self) -> Int:
-         return self.size
 
     fn insert_first(inout self, new_item: Int):
         var new_node = Pointer[ListNode].alloc(1)
@@ -101,7 +117,7 @@ struct UnorderedLinkedList:
         self.first = new_node
         if self.last == Pointer[ListNode].get_null():
             self.last = new_node
-        self.size = self.size + 1
+        self.size += 1
 
     fn insert_last(inout self, new_item: Int):
         var new_node = Pointer[ListNode].alloc(1)
@@ -111,7 +127,7 @@ struct UnorderedLinkedList:
         self.last = new_node
         if self.first == Pointer[ListNode].get_null():
             self.first = new_node
-        self.size = self.size + 1
+        self.size += 1
 
 fn main():
     try:
@@ -130,15 +146,15 @@ fn main():
         print_no_newline("Back of list: ")
         print(y.back())
         print_no_newline("Length of list: ")
-        print(y.length())
+        print(len(y))
 
         var z = UnorderedLinkedList(4, 5, 6, 7)
         print("Indexing:")
-        print(z[0])
-        print(z[1])
-        print(z[2])
-        print(z[3])
-#        print(x[4])
+        for i in range(len(z)):
+            print(z[i])
+#        print(z[4])
+
+        print(z)
         
 #        var a = UnorderedLinkedList()
 #        print(a.front())
