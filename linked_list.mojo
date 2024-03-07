@@ -1,4 +1,5 @@
 from memory.unsafe import Pointer
+from collections.optional import Optional
 
 @register_passable
 struct ListNode:
@@ -14,17 +15,14 @@ struct ListNode:
 struct LinkedListIterator(Sized):
     var current: Pointer[ListNode]
 
-    fn __init__(inout self, list: UnorderedLinkedList):
+    fn __init__(inout self, list: UnsafeLinkedList):
         self.current = list.first
 
     fn __copyinit__(inout self, existing: Self):
         self.current = existing.current
 
     fn __len__(borrowed self) -> Int:
-        if self.current:
-          return 1
-        else:
-          return 0
+        return 1 if self.current else 0
 
     fn __iter__(borrowed self) -> LinkedListIterator:
         return self
@@ -34,7 +32,7 @@ struct LinkedListIterator(Sized):
         self.current = self.current[0].link
         return current[0].data
 
-struct UnorderedLinkedList(CollectionElement, Sized, Stringable): 
+struct UnsafeLinkedList(CollectionElement, Sized, Stringable): 
     var size: Int
     var first: Pointer[ListNode]
     var last: Pointer[ListNode]
@@ -52,7 +50,7 @@ struct UnorderedLinkedList(CollectionElement, Sized, Stringable):
             self.insert_last(elements[i])
 
     fn __copyinit__(inout self, existing: Self):
-        self = UnorderedLinkedList()
+        self = UnsafeLinkedList()
         var iterator = LinkedListIterator(existing)
         for item in iterator:
             self.insert_last(item)
@@ -72,6 +70,9 @@ struct UnorderedLinkedList(CollectionElement, Sized, Stringable):
 
     fn __len__(borrowed self) -> Int:
          return self.size
+
+    fn __bool__(borrowed self) -> Bool:
+        return self.__len__() != 0
 
     fn __str__(borrowed self) -> String:
       var current = self.first
@@ -98,17 +99,17 @@ struct UnorderedLinkedList(CollectionElement, Sized, Stringable):
         else:
             raise Error("Error indexing list: out of bounds")
 
-    fn front(borrowed self) raises -> Int:
+    fn front(borrowed self) -> Optional[Int]:
       if self.first:
-          return self.first[0].data
+          return Optional[Int](self.first[0].data)
       else:
-          raise Error("Error dereferencing first node: null pointer")
+          return Optional[Int](None)
 
-    fn back(borrowed self) raises -> Int:
+    fn back(borrowed self) -> Optional[Int]:
       if self.last:
-          return self.last[0].data
+          return Optional[Int](self.last[0].data)
       else:
-          raise Error("Error dereferencing last node: null pointer")
+          return Optional[Int](None)
 
     fn insert_first(inout self, new_item: Int):
         var new_node = Pointer[ListNode].alloc(1)
@@ -131,7 +132,15 @@ struct UnorderedLinkedList(CollectionElement, Sized, Stringable):
 
 fn main():
     try:
-        var x = UnorderedLinkedList()
+        print("Singly linked list implemented with unsafe pointer")
+        print("")
+
+        var x = UnsafeLinkedList()
+        
+        print_no_newline("Is 'x' an empty list? ")
+        print("List is not empty") if x else print("List is empty")
+        print("")
+
         x.insert_first(1)
         x.insert_first(0)
         x.insert_last(2)
@@ -139,28 +148,37 @@ fn main():
         print("Iterator:")
         for item in x:
             print(item)
+        print("")
 
-        var y = x
+        let y = x
         print_no_newline("Front of list: ")
-        print(y.front())
+        print(y.front().value() if y.front() else 0)
         print_no_newline("Back of list: ")
-        print(y.back())
+        print(y.back().or_else(0).value())
         print_no_newline("Length of list: ")
         print(len(y))
+        print("")
 
-        var z = UnorderedLinkedList(4, 5, 6, 7)
+        let z = UnsafeLinkedList(4, 5, 6, 7)
         print("Indexing:")
         for i in range(len(z)):
             print(z[i])
-#        print(z[4])
+        print("")
 
+        print("Print the list:")
         print(z)
-        
-#        var a = UnorderedLinkedList()
-#        print(a.front())
+        print("")
+
+        print("Get first item of empty list:")
+        var a = UnsafeLinkedList()
+        if not a.front():
+            print("a.front() is undefined")
+        print("")
+
+#        # Get out of bounds item 
+#        print(z[4])
 
         print("Done!")
     except e:
         print_no_newline("Done, with errors: ")
         print(e.data)
-
