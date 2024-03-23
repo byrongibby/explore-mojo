@@ -3,22 +3,22 @@ from collections.optional import Optional
 from testing import *
 
 @register_passable
-struct ListNode:
-    var data: Int
-    var link: Pointer[ListNode]
+struct ListNode[T: AnyRegType]:
+    var data: T
+    var link: Pointer[ListNode[T]]
 
-    fn __init__(inout self, data: Int):
+    fn __init__(inout self, data: T):
         self.data = data
-        self.link = Pointer[ListNode].get_null()
+        self.link = Pointer[ListNode[T]].get_null()
         
     fn __copyinit__(inout self, existing: Self):
         self.data = existing.data
         self.link = existing.link
 
-struct LinkedListIterator(Sized):
-    var current: Pointer[ListNode]
+struct LinkedListIterator[T: AnyRegType](Sized):
+    var current: Pointer[ListNode[T]]
 
-    fn __init__(inout self, list: LinkedList):
+    fn __init__(inout self, list: GenericLinkedList[T]):
         self.current = list.first
 
     fn __copyinit__(inout self, existing: Self):
@@ -27,34 +27,34 @@ struct LinkedListIterator(Sized):
     fn __len__(borrowed self) -> Int:
         return 1 if self.current else 0
 
-    fn __iter__(borrowed self) -> LinkedListIterator:
+    fn __iter__(borrowed self) -> LinkedListIterator[T]:
         return self
         
-    fn __next__(inout self) -> Int:
+    fn __next__(inout self) -> T:
         var current = self.current
         self.current = self.current[0].link
         return current[0].data
 
-struct LinkedList(Boolable, CollectionElement, Sized, Stringable): 
+struct GenericLinkedList[T: AnyRegType](Boolable, CollectionElement, Sized, Stringable): 
     var size: Int
-    var first: Pointer[ListNode]
-    var last: Pointer[ListNode]
+    var first: Pointer[ListNode[T]]
+    var last: Pointer[ListNode[T]]
 
     fn __init__(inout self):
         self.size = 0
-        self.first = Pointer[ListNode].get_null()
-        self.last = Pointer[ListNode].get_null()
+        self.first = Pointer[ListNode[T]].get_null()
+        self.last = Pointer[ListNode[T]].get_null()
 
-    fn __init__(inout self, *elements: Int):
+    fn __init__(inout self, *elements: T):
         self.size = 0
-        self.first = Pointer[ListNode].get_null()
-        self.last = Pointer[ListNode].get_null()
+        self.first = Pointer[ListNode[T]].get_null()
+        self.last = Pointer[ListNode[T]].get_null()
         for i in range(len(elements)):
             self.insert_last(elements[i])
 
     fn __copyinit__(inout self, existing: Self):
-        self = LinkedList()
-        var iterator = LinkedListIterator(existing)
+        self = GenericLinkedList[T]()
+        var iterator = LinkedListIterator[T](existing)
         for item in iterator:
             self.insert_last(item)
 
@@ -81,24 +81,24 @@ struct LinkedList(Boolable, CollectionElement, Sized, Stringable):
         var current = self.first
         var string = String("[")
         if current:
-            string += str(current[0].data) 
+            string += str(current[0].data)
             while current[0].link:
                 current = current[0].link
-                string +=  ", " + str(current[0].data) 
+                string +=  ", " + str(current[0].data)
         string += "]"
         return string
 
-    fn __contains__(borrowed self, search_item: Int) -> Bool:
-        var iterator = LinkedListIterator(self)
+    fn __contains__(borrowed self, search_item: T) -> Bool:
+        var iterator = LinkedListIterator[T](self)
         for item in iterator:
             if item == search_item:
                 return True
         return False
         
-    fn __iter__(inout self) -> LinkedListIterator:
-        return LinkedListIterator(self)
+    fn __iter__(inout self) -> LinkedListIterator[T]:
+        return LinkedListIterator[T](self)
 
-    fn __getitem__(borrowed self, index: Int) raises -> Int:
+    fn __getitem__(borrowed self, index: Int) raises -> T:
         var i = index
         if i < self.size:
             var ptr = self.first
@@ -109,46 +109,46 @@ struct LinkedList(Boolable, CollectionElement, Sized, Stringable):
         else:
             raise Error("Error indexing list: out of bounds")
 
-    fn front(borrowed self) -> Optional[Int]:
+    fn front(borrowed self) -> Optional[T]:
         if self.first:
-            return Optional[Int](self.first[0].data)
+            return Optional[T](self.first[0].data)
         else:
-            return Optional[Int](None)
+            return Optional[T](None)
 
-    fn back(borrowed self) -> Optional[Int]:
+    fn back(borrowed self) -> Optional[T]:
         if self.last:
-            return Optional[Int](self.last[0].data)
+            return Optional[T](self.last[0].data)
         else:
-            return Optional[Int](None)
+            return Optional[T](None)
 
-    fn insert_first(inout self, new_item: Int):
-        var new_node = Pointer[ListNode].alloc(1)
+    fn insert_first(inout self, new_item: T):
+        var new_node = Pointer[ListNode[T]].alloc(1)
         new_node[0] = ListNode(new_item)
         new_node[0].link = self.first
         self.first = new_node
-        if self.last == Pointer[ListNode].get_null():
+        if self.last == Pointer[ListNode[T]].get_null():
             self.last = new_node
         self.size += 1
 
-    fn insert_last(inout self, new_item: Int):
-        var new_node = Pointer[ListNode].alloc(1)
+    fn insert_last(inout self, new_item: T):
+        var new_node = Pointer[ListNode[T]].alloc(1)
         new_node[0] = ListNode(new_item)
-        if self.last != Pointer[ListNode].get_null():
+        if self.last != Pointer[ListNode[T]].get_null():
             self.last[0].link = new_node 
         self.last = new_node
-        if self.first == Pointer[ListNode].get_null():
+        if self.first == Pointer[ListNode[T]].get_null():
             self.first = new_node
         self.size += 1
 
-    fn delete_node(inout self, delete_item: Int):
+    fn delete_node(inout self, delete_item: T):
         var current = self.first
         var next = current
         var prev = current
         while current:
             if current[0].data == delete_item:
                 if (current == self.first) & (current == self.last):
-                    self.first = Pointer[ListNode].get_null()
-                    self.last = Pointer[ListNode].get_null()
+                    self.first = Pointer[ListNode[T]].get_null()
+                    self.last = Pointer[ListNode[T]].get_null()
                     self.size -= 1
                     current.free()
                   elif current == self.first:
@@ -157,7 +157,7 @@ struct LinkedList(Boolable, CollectionElement, Sized, Stringable):
                     current.free()
                   elif current == self.last:
                     self.last = prev
-                    prev[0].link = Pointer[ListNode].get_null()
+                    prev[0].link = Pointer[ListNode[T]].get_null()
                     self.size -= 1
                     current.free()
                   else:
@@ -173,13 +173,13 @@ fn main():
     try:
         print("Test: Linked list implemented with unsafe pointer.")
         # Test implicit booleanness
-        var x = LinkedList()
+        var x = GenericLinkedList[Float64]()
         assert_equal("List is not empty" if x else "List is empty", "List is empty")
         # Test insert first and last
-        x.insert_first(1)
-        x.insert_first(0)
-        x.insert_last(2)
-        x.insert_last(3)
+        x.insert_first(1.0)
+        x.insert_first(0.0)
+        x.insert_last(2.0)
+        x.insert_last(3.0)
         assert_equal(str(x), "[0, 1, 2, 3]")
         # Test contains
         assert_false(5 in x)
@@ -188,9 +188,9 @@ fn main():
         var y = x
         assert_equal(str(y), str(x))
         # Test front accessor
-        assert_equal(y.front().value() if y.front() else -1, 0)
+        assert_equal(y.front().value() if y.front() else -1.0, 0.0)
         # Test back accessor
-        assert_equal(y.back().or_else(-1).value(), 3)
+        assert_equal(y.back().or_else(-1.0).value(), 3.0)
         # Test length
         assert_equal(len(y), 4)
         # Test that node is (correctly) deleted
@@ -198,7 +198,7 @@ fn main():
         assert_false(1 in y)
         assert_equal(str(y), "[0, 2, 3]")
         # Test iterator and indexing return the same values
-        var z = LinkedList(4, 5, 6, 7)
+        var z = GenericLinkedList[Float64](4.0, 5.0, 6.0, 7.0)
         var i = 0
         for item in z:
             assert_equal(item, z[i])
@@ -206,8 +206,8 @@ fn main():
         # Test stringify
         assert_equal(str(z), "[4, 5, 6, 7]")
         # Test accessing front of empty list
-        var a = LinkedList()
-        assert_equal(a.front().or_else(0).value(), 0)
+        var a = GenericLinkedList[Float64]()
+        assert_equal(a.front().or_else(0.0).value(), 0.0)
         # Test out of bounds exception
         with assert_raises(contains ="Error indexing list: out of bounds"):
           var x = z[4]
